@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Augentis Nexus — Clickable Prototype</title>
+<meta name="description" content="Click-through prototype of the Augentis Nexus embedded finance marketplace. All data is seeded fiction." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600&family=Fraunces:opsz,wght@9..144,600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --ink: #08111f;
+    --navy: #0b1f3a;
+    --paper: #f6f3ec;
+    --teal: #0fb5a6;
+    --line: rgba(255, 255, 255, 0.12);
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body {
+    background: var(--ink);
+    font-family: "Archivo", system-ui, sans-serif;
+    color: var(--paper);
+    min-height: 100vh;
+  }
+  header {
+    position: sticky; top: 0; z-index: 50;
+    display: flex; align-items: center; gap: 14px;
+    height: 48px; padding: 0 18px;
+    background: rgba(8, 17, 31, 0.96);
+    border-bottom: 1px solid var(--line);
+    backdrop-filter: blur(6px);
+  }
+  header .brand {
+    font-family: "Fraunces", serif; font-size: 16px; letter-spacing: -0.01em;
+    white-space: nowrap;
+  }
+  header .brand span { color: var(--teal); }
+  header .tag {
+    font-family: ui-monospace, monospace; font-size: 9px; letter-spacing: 0.18em;
+    text-transform: uppercase; color: #8b94a3;
+    border: 1px solid var(--line); border-radius: 999px; padding: 3px 9px;
+    white-space: nowrap;
+  }
+  header .spacer { flex: 1; }
+  select, .navbtn {
+    background: rgba(255, 255, 255, 0.06); color: var(--paper);
+    border: 1px solid var(--line); border-radius: 999px;
+    font: 500 12px "Archivo", sans-serif; padding: 6px 12px; cursor: pointer;
+  }
+  select:focus-visible, .navbtn:focus-visible { outline: 2px solid var(--teal); }
+  .navbtn:hover { background: rgba(255, 255, 255, 0.12); }
+  #stage { display: flex; justify-content: center; padding: 16px; }
+  #frame {
+    position: relative; overflow: hidden;
+    border-radius: 10px; box-shadow: 0 12px 48px rgba(0, 0, 0, 0.5);
+  }
+  #canvas { position: relative; width: 1600px; transform-origin: 0 0; }
+  #shot { display: block; width: 1600px; }
+  .hot {
+    position: absolute; display: block; cursor: pointer;
+    border-radius: 8px; border: 2px solid transparent;
+  }
+  .hot:hover, .hot:focus-visible { border-color: rgba(15, 181, 166, 0.85); background: rgba(15, 181, 166, 0.08); outline: none; }
+  body.debug .hot { border-color: rgba(15, 181, 166, 0.6); background: rgba(15, 181, 166, 0.1); }
+  .hot.pulse { animation: pulse 0.9s ease-out 1; }
+  @keyframes pulse {
+    0% { border-color: rgba(15, 181, 166, 0); }
+    35% { border-color: rgba(15, 181, 166, 0.7); background: rgba(15, 181, 166, 0.07); }
+    100% { border-color: rgba(15, 181, 166, 0); background: transparent; }
+  }
+  @media (prefers-reduced-motion: reduce) { .hot.pulse { animation: none; } }
+  #toast {
+    position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%);
+    background: var(--navy); border: 1px solid var(--line); border-radius: 12px;
+    padding: 12px 18px; font-size: 13px; color: #dce5f1;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45); z-index: 60;
+    transition: opacity 0.5s; max-width: min(560px, 90vw); text-align: center;
+  }
+  #toast.gone { opacity: 0; pointer-events: none; }
+  footer {
+    text-align: center; font-size: 11px; color: #5b6776; padding: 6px 16px 22px;
+  }
+</style>
+</head>
+<body>
+<header>
+  <span class="brand">Augentis <span>Nexus</span></span>
+  <span class="tag">Clickable prototype · seeded fiction</span>
+  <span class="spacer"></span>
+  <button class="navbtn" id="prev" aria-label="Previous screen">←</button>
+  <select id="pick" aria-label="Jump to screen"></select>
+  <button class="navbtn" id="next" aria-label="Next screen">→</button>
+</header>
+
+<div id="stage"><div id="frame"><div id="canvas">
+  <img id="shot" alt="Augentis Nexus screen" />
+  <div id="hots"></div>
+</div></div></div>
+
+<div id="toast">Navigate like the real product: click the <b>persona switcher</b> in the top bar, the <b>sidebar</b>, and the <b>cards</b>. Arrow keys step through screens.</div>
+<footer>Augentis Nexus — embedded finance marketplace demo. Every institution, person, and figure is invented; no real PII or credentials.</footer>
+
+<script>
+const PAGES = {
+  "fintech-marketplace":   { title: "Fintech · Marketplace" },
+  "fintech-service-detail":{ title: "Fintech · Service detail" },
+  "fintech-subscriptions": { title: "Fintech · My Subscriptions" },
+  "fintech-keys":          { title: "Fintech · API Keys & Sandbox" },
+  "fintech-express":       { title: "Fintech · Express a Need" },
+  "fintech-insights":      { title: "Fintech · Insights Sandbox" },
+  "bank-dashboard":        { title: "Bank · Dashboard" },
+  "bank-services":         { title: "Bank · My Services" },
+  "bank-publish":          { title: "Bank · Publish Service" },
+  "bank-analytics":        { title: "Bank · Consumption Analytics" },
+  "labs-pipeline":         { title: "Labs · 5D Pipeline" },
+  "labs-engagements":      { title: "Labs · Engagements" },
+  "labs-engagement-detail":{ title: "Labs · Engagement detail" },
+  "labs-modules":          { title: "Labs · AI Capability Modules" },
+  "labs-analytics":        { title: "Labs · Delivery Analytics" },
+};
+const ORDER = Object.keys(PAGES);
+const HOME = { bank: "bank-dashboard", fintech: "fintech-marketplace", labs: "labs-pipeline" };
+const SIDENAV = {
+  bank:    ["bank-dashboard", "bank-services", "bank-publish", "bank-analytics"],
+  fintech: ["fintech-marketplace", "fintech-subscriptions", "fintech-keys", "fintech-express", "fintech-insights"],
+  labs:    ["labs-pipeline", "labs-engagements", "labs-modules", "labs-analytics"],
+};
+// Per-page extra hotspots: [x1, y1, x2, y2, target, label]
+const EXTRAS = {
+  "fintech-marketplace":   [[304, 400, 1600, 4200, "fintech-service-detail", "Open a service"]],
+  "fintech-service-detail":[[344, 64, 600, 112, "fintech-marketplace", "Back to marketplace"],
+                            [1040, 240, 1500, 760, "fintech-subscriptions", "Subscribe"]],
+  "fintech-subscriptions": [[1240, 76, 1510, 134, "fintech-marketplace", "Browse marketplace"],
+                            [1300, 200, 1500, 560, "fintech-keys", "Manage keys"]],
+  "labs-pipeline":         [[304, 210, 1600, 1500, "labs-engagement-detail", "Open an engagement"]],
+  "labs-engagements":      [[304, 200, 1600, 950, "labs-engagement-detail", "Open an engagement"]],
+  "labs-engagement-detail":[[344, 56, 600, 104, "labs-pipeline", "Back to pipeline"]],
+};
+const PERSONA_PILLS = [
+  [648, 6, 722, 50, "bank-dashboard", "Bank portal"],
+  [722, 6, 812, 50, "fintech-marketplace", "Fintech portal"],
+  [812, 6, 950, 50, "labs-pipeline", "AugentisLabs portal"],
+];
+
+const shot = document.getElementById("shot");
+const hots = document.getElementById("hots");
+const canvas = document.getElementById("canvas");
+const frame = document.getElementById("frame");
+const pick = document.getElementById("pick");
+const toast = document.getElementById("toast");
+let current = null;
+
+for (const id of ORDER) {
+  const o = document.createElement("option");
+  o.value = id; o.textContent = PAGES[id].title;
+  pick.appendChild(o);
+}
+
+function personaOf(id) { return id.split("-")[0]; }
+
+function box(x1, y1, x2, y2, target, label) {
+  const a = document.createElement("a");
+  a.className = "hot pulse";
+  a.href = "#" + target;
+  a.dataset.target = target;
+  a.title = label;
+  a.setAttribute("aria-label", label);
+  a.style.cssText = `left:${x1}px; top:${y1}px; width:${x2 - x1}px; height:${y2 - y1}px;`;
+  return a;
+}
+
+function render(id) {
+  if (!(id in PAGES)) id = ORDER[0];
+  current = id;
+  shot.src = "screenshots/" + id + ".png";
+  pick.value = id;
+  if (location.hash !== "#" + id) history.replaceState(null, "", "#" + id);
+
+  hots.innerHTML = "";
+  const p = personaOf(id);
+  hots.appendChild(box(16, 0, 230, 56, HOME[p], "Home"));
+  for (const [x1, y1, x2, y2, t, l] of PERSONA_PILLS) hots.appendChild(box(x1, y1, x2, y2, t, l));
+  SIDENAV[p].forEach((t, i) => {
+    hots.appendChild(box(12, 110 + i * 40, 228, 148 + i * 40, t, PAGES[t].title));
+  });
+  for (const [x1, y1, x2, y2, t, l] of EXTRAS[id] ?? []) hots.appendChild(box(x1, y1, x2, y2, t, l));
+}
+
+function fit() {
+  const s = Math.min(1, (window.innerWidth - 32) / 1600);
+  canvas.style.transform = `scale(${s})`;
+  frame.style.width = 1600 * s + "px";
+  frame.style.height = (shot.naturalHeight || 1000) * s + "px";
+}
+
+shot.addEventListener("load", fit);
+window.addEventListener("resize", fit);
+
+hots.addEventListener("click", (e) => {
+  const t = e.target.closest(".hot");
+  if (!t) return;
+  e.preventDefault();
+  toast.classList.add("gone");
+  render(t.dataset.target);
+});
+
+pick.addEventListener("change", () => render(pick.value));
+document.getElementById("prev").addEventListener("click", () =>
+  render(ORDER[(ORDER.indexOf(current) + ORDER.length - 1) % ORDER.length]));
+document.getElementById("next").addEventListener("click", () =>
+  render(ORDER[(ORDER.indexOf(current) + 1) % ORDER.length]));
+window.addEventListener("keydown", (e) => {
+  if (e.key === "ArrowLeft") document.getElementById("prev").click();
+  if (e.key === "ArrowRight") document.getElementById("next").click();
+});
+window.addEventListener("hashchange", () => {
+  const id = location.hash.slice(1);
+  if (id !== current) render(id);
+});
+
+if (new URLSearchParams(location.search).has("hotspots")) document.body.classList.add("debug");
+setTimeout(() => toast.classList.add("gone"), 9000);
+
+render(location.hash.slice(1) || ORDER[0]);
+// Warm the cache for instant page flips.
+addEventListener("load", () => ORDER.forEach((id) => { new Image().src = "screenshots/" + id + ".png"; }));
+</script>
+</body>
+</html>
